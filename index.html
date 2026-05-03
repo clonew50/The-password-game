@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>لعبة كلمة المرور - جميع القواعد المفتوحة مطلوبة</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #0a0a0a;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 8px;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        #menu {
+            text-align: center;
+            background: #1a1a1a;
+            padding: 25px 15px;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 255, 150, 0.2);
+            width: 100%;
+            max-width: 400px;
+        }
+        #menu h1 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #00ff96;
+        }
+        .mode-btn {
+            background: #2a2a2a;
+            color: white;
+            border: 2px solid #00ff96;
+            padding: 14px 25px;
+            margin: 8px;
+            font-size: 1em;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: 0.3s;
+            width: 75%;
+            -webkit-tap-highlight-color: transparent;
+            font-weight: bold;
+        }
+        .mode-btn:active {
+            background: #00ff96;
+            color: #000;
+            box-shadow: 0 0 20px #00ff96;
+        }
+        #game-container {
+            display: none;
+            width: 100%;
+            max-width: 500px;
+            flex-direction: column;
+            gap: 12px;
+            padding-bottom: 20px;
+        }
+        .player-panel {
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+            border: 2px solid #333;
+            transition: 0.3s;
+            width: 100%;
+        }
+        .player-panel.active-turn {
+            border-color: #00ff96;
+            box-shadow: 0 0 20px #00ff9650;
+        }
+        .player-title {
+            font-size: 1.2em;
+            text-align: center;
+            margin-bottom: 8px;
+            color: #00ff96;
+        }
+        .timer {
+            font-size: 0.9em;
+            text-align: center;
+            background: #000;
+            padding: 4px 12px;
+            border-radius: 30px;
+            display: inline-block;
+            margin: 0 auto 6px;
+            width: fit-content;
+            color: #ffaa00;
+        }
+        .freeze-btn {
+            background: #333;
+            color: white;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            margin: 0 auto 6px;
+            display: block;
+            font-size: 0.8em;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .freeze-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .status-box {
+            background: #0a1a0a;
+            border: 2px solid #00ff96;
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 8px;
+            text-align: center;
+            font-size: 0.85em;
+            color: #a0ffc0;
+        }
+        .password-input {
+            width: 100%;
+            padding: 10px;
+            background: #111;
+            border: 2px solid #555;
+            color: #fff;
+            font-size: 0.95em;
+            border-radius: 8px;
+            outline: none;
+            transition: 0.2s;
+            text-align: right;
+            -webkit-appearance: none;
+        }
+        .password-input:focus {
+            border-color: #00ff96;
+            box-shadow: 0 0 8px #00ff9640;
+        }
+        .password-input.success-flash {
+            border-color: #00ff96;
+            box-shadow: 0 0 12px #00ff9660;
+        }
+        .password-input.error-flash {
+            border-color: #ff4444;
+            box-shadow: 0 0 12px #ff444460;
+            animation: shake 0.5s;
+        }
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            75% { transform: translateX(3px); }
+        }
+        .rules-area {
+            margin-top: 8px;
+            background: #0f0f0f;
+            border-radius: 8px;
+            padding: 6px;
+            max-height: 200px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        .rule {
+            padding: 5px 8px;
+            margin: 3px 0;
+            border-radius: 5px;
+            font-size: 0.72em;
+            line-height: 1.3;
+            transition: 0.3s;
+        }
+        .rule.locked {
+            background: #1a1a1a;
+            color: #555;
+            font-style: italic;
+        }
+        .rule.unlocked-ok {
+            background: #1b3b2c;
+            color: #a0ffc0;
+        }
+        .rule.unlocked-fail {
+            background: #3b1b1b;
+            color: #ffaaaa;
+            border-right: 3px solid #ff4444;
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .rule.new-highlight {
+            animation: unlockGlow 0.6s ease-out;
+        }
+        @keyframes unlockGlow {
+            0% { background: #ffaa00; color: #000; transform: scale(1.02); }
+            100% { background: #1f1f2a; color: #ffd966; transform: scale(1); }
+        }
+        #winner-screen {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+            padding: 20px;
+        }
+        #winner-msg {
+            font-size: 1.8em;
+            color: #ffd700;
+            text-shadow: 0 0 20px gold;
+            text-align: center;
+        }
+        .restart-btn {
+            margin-top: 20px;
+            background: #00ff96;
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1.1em;
+            border-radius: 50px;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="menu">
+        <h1>🔐 لعبة كلمة المرور</h1>
+        <p style="margin-bottom:18px; font-size:0.85em;">35 قاعدة • حافظ على كل القواعد المفتوحة</p>
+        <button class="mode-btn" onclick="startGame(1)">🎮 لاعب واحد</button>
+        <button class="mode-btn" onclick="startGame(2)">⚔️ لاعبان</button>
+    </div>
+
+    <div id="game-container"></div>
+
+    <div id="winner-screen">
+        <div id="winner-msg"></div>
+        <button class="restart-btn" onclick="location.reload()">🔄 العب مرة أخرى</button>
+    </div>
+
+    <script>
+        let audioCtx = null;
+        function initAudio() { if (!audioCtx) audioCtx = new(window.AudioContext || window.webkitAudioContext)(); }
+        function beep(f, t, d) { if (!audioCtx) return; const o = audioCtx.createOscillator(), g = audioCtx.createGain();
+            o.type = t; o.frequency.value = f; g.gain.value = 0.08; o.connect(g); g.connect(audioCtx.destination);
+            o.start(); o.stop(audioCtx.currentTime + d); }
+        function soundSuccess() { beep(880, 'sine', 0.08); beep(1100, 'sine', 0.08); }
+        function soundUnlock() { beep(600, 'triangle', 0.1); beep(900, 'triangle', 0.1); beep(1200, 'triangle', 0.15); }
+        function soundError() { beep(200, 'square', 0.15); }
+
+        function rand(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+        function shuffle(a) { const arr = [...a]; for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } return arr; }
+
+        const POOLS = { 1: [], 2: [], 3: [], 4: [], 5: [] };
+        function add(d, f) { POOLS[d].push(f); }
+
+        // DIFF 1
+        add(1, () => ({ d: '5 أحرف على الأقل', v: p => p.length >= 5 }));
+        add(1, () => ({ d: 'رقم واحد على الأقل', v: p => /\d/.test(p) }));
+        add(1, () => ({ d: 'حرف إنجليزي كبير (A-Z)', v: p => /[A-Z]/.test(p) }));
+        add(1, () => ({ d: 'حرف إنجليزي صغير (a-z)', v: p => /[a-z]/.test(p) }));
+        add(1, () => ({ d: 'رمز خاص (!@#$%^&*)', v: p => /[!@#$%^&*]/.test(p) }));
+        add(1, () => ({ d: 'تحتوي على مسافات', v: p => /\s/.test(p) }));
+        add(1, () => ({ d: 'تبدأ بحرف وليس برقم', v: p => /^[a-zA-Z\u0600-\u06FF]/.test(p) }));
+        add(1, () => ({ d: 'تنتهي برقم أو رمز خاص', v: p => /[\d!@#$%^&*]$/.test(p) }));
+
+        // DIFF 2
+        add(2, () => { const t = rand(15, 40); return { d: `مجموع الأرقام = ${t}`, v: p => { const d = p.match(/\d/g); return d ? d.reduce((s, x) => s + +x, 0) === t : false; } }; });
+        add(2, () => { const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'], today = days[new Date().getDay()]; return { d: `اسم اليوم: ${today}`, v: p => p.includes(today) }; });
+        add(2, () => { const h = new Date().getHours().toString().padStart(2, '0'); return { d: `الساعة الحالية: ${h}`, v: p => p.includes(h) }; });
+        add(2, () => ({ d: 'إيموجي واحد 😎🔥❤️', v: p => /[\u{1F000}-\u{1F9FF}]/u.test(p) }));
+        const colors = ['أحمر', 'أزرق', 'أخضر', 'أصفر', 'أسود', 'أبيض', 'برتقالي', 'بنفسجي', 'وردي', 'رمادي'];
+        add(2, () => ({ d: `اسم لون (${colors.slice(0,5).join('، ')}...)`, v: p => colors.some(c => p.includes(c)) }));
+        add(2, () => ({ d: 'عدد أولي < 100', v: p => { const n = p.match(/\d+/g) || []; const pr = [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97]; return n.some(x => pr.includes(+x)); } }));
+        add(2, () => ({ d: 'رقم روماني (I, V, X, L, C, D, M)', v: p => /[IVXLCDM]{2,}/i.test(p) }));
+        const elements = ['H','He','Li','C','O','Ne','Fe','Cu','Ag','Au','Pt','Na','Cl','Ca','Zn'];
+        add(2, () => ({ d: `رمز عنصر كيميائي (${elements.slice(0,6).join(',')}...)`, v: p => elements.some(e => p.includes(e)) }));
+        add(2, () => ({ d: 'palindrome إنجليزي', v: p => ['radar','level','civic','madam','noon','racecar','deified','rotator'].some(w => p.toLowerCase().includes(w)) }));
+        add(2, () => ({ d: '"Paul" + أرقام + "eggs"', v: p => /Paul\d+eggs/i.test(p) }));
+
+        // DIFF 3
+        const chessPieces = ['ملك','وزير','فيل','حصان','قلعة','جندي'];
+        add(3, () => ({ d: `قطعة شطرنج (${chessPieces.join('، ')})`, v: p => chessPieces.some(c => p.includes(c)) }));
+        const planets = ['عطارد','الزهرة','الأرض','المريخ','المشتري','زحل','أورانوس','نبتون'];
+        add(3, () => ({ d: `كوكب (${planets.join('، ')})`, v: p => planets.some(pl => p.includes(pl)) }));
+        const countries = ['مصر','السعودية','الأردن','لبنان','المغرب','الجزائر','تونس','الإمارات','الكويت','قطر','عمان','البحرين','اليمن','سوريا','العراق'];
+        add(3, () => ({ d: `دولة عربية (${countries.slice(0,5).join('، ')}...)`, v: p => countries.some(c => p.includes(c)) }));
+        add(3, () => ({ d: 'تاريخ DD/MM صالح', v: p => /(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])/.test(p) }));
+        add(3, () => ({ d: 'عدد الأحرف عدد أولي', v: p => [2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,101,103,107,109,113,127,131,137,139,149,151,157,163,167].includes(p.length) }));
+        add(3, () => ({ d: 'وقت HH:MM صحيح', v: p => /([01]\d|2[0-3]):[0-5]\d/.test(p) }));
+        add(3, () => ({ d: 'متتالية فيبوناتشي', v: p => ['112','123','235','358','5813','81321','132134'].some(f => p.includes(f)) }));
+        add(3, () => ({ d: 'علامة @', v: p => p.includes('@') }));
+
+        // DIFF 4
+        add(4, () => ({ d: 'جميع الأرقام من 0 إلى 9', v: p => [...Array(10).keys()].every(d => p.includes(d.toString())) }));
+        add(4, () => ({ d: 'كلمة "صدى"', v: p => p.includes('صدى') }));
+        add(4, () => ({ d: 'الحروف المتحركة (a,e,i,o,u)', v: p => ['a','e','i','o','u'].every(v => p.toLowerCase().includes(v)) }));
+        add(4, () => ({ d: 'رابط http:// أو https://', v: p => /https?:\/\//.test(p) }));
+        add(4, () => ({ d: '8 أرقام متتالية', v: p => /\d{8}/.test(p) }));
+
+        // DIFF 5
+        add(5, () => { const n = rand(1,200); const map = {1:'I',4:'IV',5:'V',9:'IX',10:'X',40:'XL',50:'L',90:'XC',100:'C',400:'CD',500:'D',900:'CM',1000:'M'}; let x=n, r=''; const keys=[1000,900,500,400,100,90,50,40,10,9,5,4,1]; for(let k of keys){while(x>=k){r+=map[k];x-=k;}} return { d:`الرقم الروماني لـ ${n} (${r})`, v: p => p.includes(r) }; });
+        add(5, () => ({ d: 'عدد الأحرف يقبل القسمة على 15', v: p => p.length % 15 === 0 }));
+        add(5, () => ({ d: 'palindrome عربي من 3 أحرف', v: p => { const l = p.match(/[\u0600-\u06FF]{3,}/g) || []; return l.some(w => w === w.split('').reverse().join('')); } }));
+        add(5, () => ({ d: '"أكون أو لا أكون"', v: p => p.includes('أكون') && p.includes('لا أكون') }));
+
+        function generateRules() {
+            const sel = [];
+            const dist = {1:8, 2:10, 3:8, 4:5, 5:4};
+            for(let diff=1; diff<=5; diff++){
+                const pool = shuffle([...POOLS[diff]]);
+                for(let i=0; i<dist[diff]; i++) sel.push(pool[i % pool.length]());
+            }
+            return sel.slice(0,35);
+        }
+
+        let players = [], interval = null, active = false, mode = 1;
+
+        function createPlayer(name) {
+            const rules = generateRules();
+            const states = new Array(35).fill('locked');
+            states[0] = 'unlocked'; // أول قاعدة مفتوحة
+            return { name, rules, states, pwd:'', sec:0, freezeOk:true, frozen:false, ftimer:null, done:false, score:0 };
+        }
+
+        function allUnlockedValid(pl) {
+            for(let i=0; i<pl.states.length; i++) {
+                if(pl.states[i] === 'unlocked' && !pl.rules[i].v(pl.pwd)) return false;
+            }
+            return true;
+        }
+
+        function openNextRule(pl) {
+            for(let i=0; i<pl.states.length; i++) {
+                if(pl.states[i] === 'locked') {
+                    pl.states[i] = 'unlocked';
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        function render(pl, i) {
+            const pn = document.getElementById(`p-${i}`);
+            if(!pn) return;
+
+            const unlockedCount = pl.states.filter(s => s === 'unlocked').length;
+            const lockedCount = pl.states.filter(s => s === 'locked').length;
+            const allValid = allUnlockedValid(pl);
+
+            pn.querySelector('.progress').textContent = pl.done ? '🎉 اكتملت!' : `🔓 مفتوحة: ${unlockedCount} | 🔒 مقفلة: ${lockedCount}`;
+            const m = Math.floor(pl.sec/60), s = pl.sec%60;
+            pn.querySelector('.timer').textContent = `⏱ ${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+
+            const fb = pn.querySelector('.freeze-btn');
+            fb.disabled = !pl.freezeOk || pl.done;
+            fb.textContent = pl.frozen ? '❄️ مجمّد' : pl.freezeOk ? '❄️ تجميد' : '❄️ تم';
+
+            const sb = pn.querySelector('.status-box');
+            if(pl.done) sb.textContent = '🎉 جميع القواعد المفتوحة محققة! لقد فزت!';
+            else if(allValid && pl.pwd.length>0) sb.textContent = '✅ كل القواعد المفتوحة محققة. ستفتح قاعدة جديدة تلقائياً.';
+            else if(pl.pwd.length===0) sb.textContent = '🔓 ابدأ بكتابة كلمة مرور لحل القواعد المفتوحة.';
+            else sb.textContent = '❌ هناك قواعد مفتوحة غير محققة. أصلحها لفتح التالية.';
+
+            const ra = pn.querySelector('.rules-area');
+            ra.innerHTML = '';
+            pl.rules.forEach((r, j) => {
+                const el = document.createElement('div');
+                el.className = 'rule';
+                if(pl.states[j] === 'locked') {
+                    el.classList.add('locked');
+                    el.textContent = `🔒 ${j+1}. ${r.d}`;
+                } else if(pl.states[j] === 'unlocked') {
+                    if(pl.rules[j].v(pl.pwd)) {
+                        el.classList.add('unlocked-ok');
+                        el.textContent = `✅ ${j+1}. ${r.d}`;
+                    } else {
+                        el.classList.add('unlocked-fail');
+                        el.textContent = `❌ ${j+1}. ${r.d}`;
+                    }
+                }
+                if(pl._justOpened === j) {
+                    el.classList.add('new-highlight');
+                }
+                ra.appendChild(el);
+            });
+            if(pl._justOpened !== undefined) {
+                setTimeout(() => { pl._justOpened = undefined; render(pl, i); }, 700);
+            }
+
+            const firstFail = ra.querySelector('.rule.unlocked-fail');
+            if(firstFail) firstFail.scrollIntoView({ behavior:'smooth', block:'center' });
+        }
+
+        function buildUI() {
+            document.getElementById('game-container').innerHTML = '';
+            for(let i=0; i<mode; i++) {
+                const pn = document.createElement('div');
+                pn.className = 'player-panel';
+                pn.id = `p-${i}`;
+                if(i===0) pn.classList.add('active-turn');
+                pn.innerHTML = `
+                    <div class="player-title">👤 ${players[i].name}</div>
+                    <div style="text-align:center"><span class="timer">⏱ 00:00</span></div>
+                    <button class="freeze-btn" onclick="freeze(${i})">❄️ تجميد</button>
+                    <div class="status-box">🔓 ابدأ بكتابة كلمة مرور</div>
+                    <input type="text" class="password-input" placeholder="اكتب كلمة المرور..." 
+                           oninput="check(${i}, this.value)" onfocus="focusP(${i})">
+                    <div class="progress">🔓 مفتوحة: 1 | 🔒 مقفلة: 34</div>
+                    <div class="rules-area"></div>`;
+                document.getElementById('game-container').appendChild(pn);
+            }
+            for(let i=0; i<mode; i++) render(players[i], i);
+        }
+
+        function check(i, val) {
+            if(!active) return;
+            const pl = players[i];
+            if(pl.done || pl.frozen) return;
+            pl.pwd = val;
+            const inp = document.getElementById(`p-${i}`).querySelector('.password-input');
+
+            const allValid = allUnlockedValid(pl);
+            const anyFail = !allValid && pl.pwd.length>0;
+
+            if(allValid && pl.pwd.length>0) {
+                // فتح قاعدة جديدة
+                const newIdx = openNextRule(pl);
+                if(newIdx !== -1) {
+                    pl._justOpened = newIdx;
+                    soundUnlock();
+                    inp.classList.add('success-flash');
+                    setTimeout(() => inp.classList.remove('success-flash'), 500);
+                    // بعد الفتح، قد تكون القاعدة الجديدة غير محققة بعد، نعرضها عادي
+                } else {
+                    // لم يعد هناك قواعد مقفلة -> فوز!
+                    pl.done = true;
+                    pl.score = Math.max(0, 2000 - pl.sec*3);
+                    inp.disabled = true;
+                    checkWin();
+                }
+            } else if(anyFail) {
+                inp.classList.add('error-flash');
+                soundError();
+                setTimeout(() => inp.classList.remove('error-flash'), 500);
+            } else {
+                inp.classList.remove('success-flash', 'error-flash');
+            }
+            render(pl, i);
+        }
+
+        function focusP(i) { if(mode===1) return; document.querySelectorAll('.player-panel').forEach(p=>p.classList.remove('active-turn')); document.getElementById(`p-${i}`).classList.add('active-turn'); }
+
+        function freeze(i) {
+            const pl = players[i];
+            if(!pl.freezeOk || pl.frozen || pl.done || !active) return;
+            pl.frozen = true; pl.freezeOk = false;
+            document.getElementById(`p-${i}`).querySelector('.password-input').disabled = true;
+            soundSuccess(); render(pl, i);
+            pl.ftimer = setTimeout(() => {
+                pl.frozen = false;
+                document.getElementById(`p-${i}`).querySelector('.password-input').disabled = false;
+                render(pl, i);
+            }, 5000);
+        }
+
+        function checkWin() {
+            const done = players.filter(p=>p.done);
+            if(!done.length) return;
+            if(mode===1) end(done[0]);
+            else end(done.reduce((b,p)=>p.score>b.score?p:b));
+        }
+
+        function end(w) {
+            active = false; if(interval) clearInterval(interval);
+            players.forEach(p=>{if(p.ftimer) clearTimeout(p.ftimer);});
+            document.querySelectorAll('.password-input').forEach(i=>i.disabled=true);
+            document.querySelectorAll('.freeze-btn').forEach(b=>b.disabled=true);
+            const m=Math.floor(w.sec/60), s=w.sec%60;
+            document.getElementById('winner-msg').innerHTML = `🏆 ${w.name} فاز! 🏆<br><span style="font-size:0.5em;">⏱ ${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}<br>⭐ ${w.score} نقطة</span>`;
+            document.getElementById('winner-screen').style.display = 'flex';
+        }
+
+        function startGame(pc) {
+            initAudio(); mode = pc;
+            players = [createPlayer('اللاعب')];
+            if(mode===2) players.push(createPlayer('اللاعب 2'));
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('game-container').style.display = 'flex';
+            document.getElementById('winner-screen').style.display = 'none';
+            buildUI(); active = true;
+            if(interval) clearInterval(interval);
+            interval = setInterval(()=>{
+                players.forEach(p=>{if(!p.done && !p.frozen) p.sec++;});
+                for(let i=0; i<mode; i++) render(players[i], i);
+            }, 1000);
+        }
+
+        document.getElementById('game-container').style.display = 'none';
+        document.getElementById('winner-screen').style.display = 'none';
+    </script>
+</body>
+</html>
